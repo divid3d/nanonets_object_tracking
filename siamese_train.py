@@ -29,12 +29,12 @@ Get training data
 
 
 class Config:
-    training_dir = "my_track_dataset_train/"
-    testing_dir = "my_track_dataset_test/"
-    train_batch_size = 128
+    training_dir = "/content/my_track_dataset_train"
+    testing_dir = "/content/my_track_dataset_test"
+    train_batch_size = 256
     train_number_epochs = 30
-    model_save_path = ""
-    checkpoint_save_path = ""
+    model_save_path = "/content/gdrive/MyDrive/deep_sort/models"
+    checkpoint_save_path = "/content/gdrive/MyDrive/deep_sort/models"
     checkpoint_load_path = ""
 
 
@@ -86,6 +86,7 @@ if Config.checkpoint_load_path:
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     start_iter = checkpoint['iter']
     start_epoch = checkpoint['epoch']
+    iteration_number= checkpoint['ended_iter']
     #loss = checkpoint['loss']
     print("Successfully loaded checkpoint {}".format(Config.checkpoint_load_path))
 
@@ -121,29 +122,33 @@ for epoch in range(start_epoch, Config.train_number_epochs):
         iteration_elapsed_time = datetime.now() - iteration_start_time
         print("Epoch number: {}, iteration: {}, training loss: {}, iteration elapsed time: {}".format(epoch, iteration_number, triplet_loss.item(), iteration_elapsed_time))
 
-        if i % 10 == 0:
+        if i % 100 == 0:
             counter.append(iteration_number)
             loss_history.append(triplet_loss.item())
             plt.plot(counter, loss_history)
             plt.savefig('train_loss.png')
             print("Saved train_loss.png")
+
+        if i % 10 == 0:
             if Config.checkpoint_save_path:
-                checkpoint_name = "checkpoint_i{}_e{}.pt"
+                checkpoint_name = "checkpoint.pt"
                 checkpoint_save_path = os.path.join(Config.checkpoint_save_path, checkpoint_name)
                 torch.save({
                     'iter': i,
                     'epoch': epoch,
+                    'ended_iter': iteration_number
                     'model_state_dict': net.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'loss': triplet_loss.item(),
                 }, checkpoint_save_path)
+                print("Checkpoint iter: {}, epoch: {}".format(i, epoch))
                 print("Checkpoint {} saved in {} successfully".format(checkpoint_name, checkpoint_save_path))
 
     start_iter = 0
 
     if not os.path.exists(Config.model_save_path):
         os.mkdir(Config.model_save_path)
-    torch.save(net, Config.model_save_path + "model{}.pt".format(epoch + 1))
+    torch.save(net, os.path.joint(Config.model_save_path, "model{}.pt".format(epoch)))
 
     epoch_elapsed_time = datetime.now() - epoch_start_time
     print("Training epoch time: {}".format(epoch_elapsed_time))
