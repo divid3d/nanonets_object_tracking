@@ -29,19 +29,21 @@ Get training data
 
 
 class Config:
-    training_dir = "/content/my_track_dataset_train"
-    testing_dir = "/content/my_track_dataset_test"
-    train_batch_size = 256
+    training_dir = "/content/nanonets_object_tracking/my_track_dataset_train"
+    testing_dir = "/content/nanonets_object_tracking/my_track_dataset_test"
+    train_batch_size = 128
     train_number_epochs = 30
-    model_save_path = "/content/gdrive/MyDrive/deep_sort/models"
-    checkpoint_save_path = "/content/gdrive/MyDrive/deep_sort/models"
-    checkpoint_load_path = ""
+    model_save_path = "/content/gdrive/MyDrive/deep_sort/models/model_128/"
+    checkpoint_save_path = "/content/gdrive/MyDrive/deep_sort/models/model_128/"
+    checkpoint_load_path = "/content/gdrive/MyDrive/deep_sort/models/model_128/checkpoint.pt"
 
 
 folder_dataset = dset.ImageFolder(root=Config.training_dir)
 
 transforms = torchvision.transforms.Compose([
     torchvision.transforms.Resize((128, 128)),
+    torchvision.transforms.ColorJitter(hue=.05, saturation=.05),
+    torchvision.transforms.RandomHorizontalFlip(),
     torchvision.transforms.ToTensor()
 ])
 
@@ -75,7 +77,7 @@ counter = []
 loss_history = []
 iteration_number = 0
 
-train_dataloader = DataLoader(siamese_dataset, shuffle=False, num_workers=14, batch_size=Config.train_batch_size)
+train_dataloader = DataLoader(siamese_dataset, shuffle=True, num_workers=4, batch_size=Config.train_batch_size)
 
 start_iter = 0
 start_epoch = 0
@@ -127,16 +129,17 @@ for epoch in range(start_epoch, Config.train_number_epochs):
             loss_history.append(triplet_loss.item())
             plt.plot(counter, loss_history)
             plt.savefig('train_loss.png')
+            plt.savefig(os.path.join(Config.checkpoint_save_path, "train_loss2.png"))
             print("Saved train_loss.png")
 
         if i % 10 == 0:
             if Config.checkpoint_save_path:
-                checkpoint_name = "checkpoint.pt"
+                checkpoint_name = "checkpoint2.pt"
                 checkpoint_save_path = os.path.join(Config.checkpoint_save_path, checkpoint_name)
                 torch.save({
                     'iter': i,
                     'epoch': epoch,
-                    'ended_iter': iteration_number
+                    'ended_iter': iteration_number,
                     'model_state_dict': net.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'loss': triplet_loss.item(),
@@ -148,7 +151,7 @@ for epoch in range(start_epoch, Config.train_number_epochs):
 
     if not os.path.exists(Config.model_save_path):
         os.mkdir(Config.model_save_path)
-    torch.save(net, os.path.joint(Config.model_save_path, "model{}.pt".format(epoch)))
+    torch.save(net, os.path.join(Config.model_save_path, "model{}.pt".format(epoch)))
 
     epoch_elapsed_time = datetime.now() - epoch_start_time
     print("Training epoch time: {}".format(epoch_elapsed_time))
